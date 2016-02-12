@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.DriverManager;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.analysis.Analyzer;
@@ -32,6 +33,11 @@ import org.apache.lucene.util.Version;
 import edu.ucla.cs.cs144.DbManager;
 import edu.ucla.cs.cs144.SearchRegion;
 import edu.ucla.cs.cs144.SearchResult;
+
+//import java.text.ParseException;
+//import java.text.DateFormat;
+//import java.text.SimpleDateFormat;
+//import java.util.Date;
 
 public class AuctionSearch implements IAuctionSearch {
 
@@ -91,8 +97,146 @@ public class AuctionSearch implements IAuctionSearch {
 
 	public String getXMLDataForItemId(String itemId) {
 		// TODO: Your code here!
-		return "";
+        try{
+            //initialize mySQL
+        	String returnXML="";
+        	Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/CS144", "cs144", "");
+            
+            //create statements
+            Statement s = conn.createStatement();
+            Statement categoryS = conn.createStatement();
+            Statement buypriceS = conn.createStatement();
+            Statement bidsS = conn.createStatement();
+            Statement itemPosS = conn.createStatement();
+        
+            //Query data
+        	ResultSet rs = s.executeQuery("Select * From ItemTable Where ItemID="+itemId);
+            ResultSet category = categoryS.executeQuery("Select Category From ItemCategory Where ItemID="+itemId);
+            ResultSet buyprice = buypriceS.executeQuery("Select Buy_Price From ItemBuyPrice Where ItemID="+itemId);
+            ResultSet bids = bidsS.executeQuery("Select * From ItemBids Where ItemID="+itemId);
+            ResultSet itemPos = itemPosS.executeQuery("Select Latitude, Longitude From ItemPosition Where ItemID="+itemId);
+            
+            //start filling up <Item> info
+        	while(rs.next()){
+        		returnXML += "<Item ItemID=\""+rs.getString("ItemID")+"\">\n";
+            	returnXML += "  <Name>"+xmlEscape(rs.getString("Name"))+"</Name>\n";
+                
+                //get all categories
+                while(category.next()){
+                	returnXML +="  <Category>"+xmlEscape(category.getString("Category"))+"</Category>\n";
+                }
+                
+                returnXML += "  <Currently>$"+rs.getString("Currently")+"</Currently>\n";
+                if(buyprice.next()){
+                    returnXML += "  <Buy_Price>$"+buyprice.getString("Buy_Price")+"</Buy_Price>\n";
+                }
+                returnXML += "  <First_Bid>$"+rs.getString("First_Bid")+"</First_Bid>\n";
+                returnXML += "  <Number_of_Bids>"+rs.getString("Number_of_Bids")+"</Number_of_Bids>\n";
+                
+                //get all bids
+                if(bids.next()){
+                    returnXML += "  <Bids>\n";
+                    do{
+                        Statement bidderS = conn.createStatement();
+                        Statement userLocationS = conn.createStatement();
+                        ResultSet bidder = bidderS.executeQuery("Select Rating From BidderRating Where UserID='"+bids.getString("BidderID")+"'");
+                        ResultSet userLocation = userLocationS.executeQuery("Select * from UserLocation Where UserID='"+bids.getString("BidderID")+"'");
+                        
+                        //start of a bid
+                        bidder.next();
+                        returnXML += "    <Bid>\n";
+                        
+                        //bidder
+                        returnXML += "      <Bidder Rating=\""+bidder.getString("Rating")+"\" ";
+                        returnXML += "UserID=\""+bids.getString("BidderID")+"\">\n";
+                        //location and country
+                        if(userLocation.next()){
+                            String location = userLocation.getString("Location");
+                            String country = userLocation.getString("Country");
+                            if(location.length()>0)
+                                returnXML += "        <Location>"+xmlEscape(location)+"</Location>\n";
+                            if(country.length()>0)
+                                returnXML += "        <Country>"+xmlEscape(country)+"</Country>\n";
+                        }
+                        returnXML += "      </Bidder>\n";
+                        //time and amount
+                        returnXML += "      <Time>"+reformatDate(bids.getString("Time"))+"</Time>\n";
+                        returnXML += "      <Amount>$"+bids.getString("Amount")+"</Amount>\n";
+                        returnXML += "    </Bid>\n";
+                    }while(bids.next());
+                    
+                    returnXML += "  </Bids>\n";
+                }else{
+                    returnXML += "  <Bids />\n";
+                }
+                
+                //item location
+                returnXML += "  <Location";
+                if(itemPos.next()){
+                	returnXML += " Latitude=\""+itemPos.getString("Latitude")+"\" Longitude=\""+itemPos.getString("Longitude")+"\">";
+                }else{
+                	returnXML += ">";
+                }
+                returnXML += xmlEscape(rs.getString("Location"))+"</Location>\n";
+                returnXML += "  <Country>"+xmlEscape(rs.getString("Country"))+"</Country>\n";
+                returnXML += "  <Started>"+reformatDate(rs.getString("Started"))+"</Started>\n";
+                returnXML += "  <Ends>"+reformatDate(rs.getString("Ends"))+"</Ends>\n";
+                
+                Statement sellerS = conn.createStatement();
+                ResultSet seller = sellerS.executeQuery("Select Rating From SellerRating Where UserID='"+rs.getString("SellerID")+"'");
+                seller.next();
+                returnXML += "  <Seller Rating=\""+seller.getString("Rating")+"\" UserID=\""+rs.getString("SellerID")+"\" />\n";
+                
+                if(rs.getString("Description").length()>0)
+                	returnXML += "  <Description>"+xmlEscape(rs.getString("Description"))+"</Description>\n";
+                else
+                    returnXML += "  <Description />\n";
+                
+                returnXML +="</Item>";
+        	}
+            
+            
+            try {
+                conn.close();
+            } catch (SQLException ex) {
+                System.out.println(ex);
+            }
+        
+			return returnXML;
+        	}
+        catch (SQLException ex){
+            System.out.println("SQLException caught");
+            System.out.println("---");
+            while ( ex != null ){
+                System.out.println("Message   : " + ex.getMessage());
+                System.out.println("SQLState  : " + ex.getSQLState());
+                System.out.println("ErrorCode : " + ex.getErrorCode());
+                System.out.println("---");
+                ex = ex.getNextException();
+            }
+            return "";
+        }catch(ClassNotFoundException e){
+            System.out.println("Class Not Found");
+            return "";
+        }
 	}
+    
+    static String reformatDate(String dateString){
+        try{
+            SimpleDateFormat outputFormat = new SimpleDateFormat("MMM-dd-yy HH:mm:ss");
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date parsed = inputFormat.parse(dateString);
+            return outputFormat.format(parsed);
+        }catch(Exception e){
+            System.out.println("Date parse failed");
+            return "";
+        }
+    }
+    
+    static String xmlEscape(String str){
+        return ((str.replace("<","&lt;")).replace(">","&gt;")).replace("&","&amp;");
+    }
 	
 	public String echo(String message) {
 		return message;
