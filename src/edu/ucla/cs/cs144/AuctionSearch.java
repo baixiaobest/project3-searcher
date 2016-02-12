@@ -304,7 +304,7 @@ public class AuctionSearch implements IAuctionSearch {
     }
     
     static String xmlEscape(String str){
-        return str.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\\", "\\\\").replace("\"", "\\\"").replace("'","&apos;");
+        return str.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;");
     }
 	
 	public String echo(String message) {

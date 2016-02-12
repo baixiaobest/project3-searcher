@@ -24,13 +24,13 @@ public class AuctionSearchTest {
 			System.out.println(result.getItemId() + ": " + result.getName());
 		}
 
-		// String query2 = "star trek";
-		// SearchResult[] basicResults2 = as.basicSearch(query2, 0, 1000);
-		// System.out.println("Basic Seacrh Query: " + query2);
-		// System.out.println("Received " + basicResults2.length + " results");
-		// for(SearchResult result : basicResults2) {
-		// 	System.out.println(result.getItemId() + ": " + result.getName());
-		// }
+		 String query2 = "star trek";
+		 SearchResult[] basicResults2 = as.basicSearch(query2, 0, 1000);
+		 System.out.println("Basic Seacrh Query: " + query2);
+		 System.out.println("Received " + basicResults2.length + " results");
+		 for(SearchResult result : basicResults2) {
+		 	System.out.println(result.getItemId() + ": " + result.getName());
+		 }
 		
 		SearchRegion region =
 		    new SearchRegion(33.774, -118.63, 34.201, -117.38); 
@@ -52,6 +52,11 @@ public class AuctionSearchTest {
         System.out.println(item);
 		
         itemId = "1049500573";
+        item = as.getXMLDataForItemId(itemId);
+        System.out.println("XML data for ItemId: " + itemId);
+        System.out.println(item);
+        
+        itemId = "104";
         item = as.getXMLDataForItemId(itemId);
         System.out.println("XML data for ItemId: " + itemId);
         System.out.println(item);
