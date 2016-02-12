@@ -106,7 +106,7 @@ public class AuctionSearch implements IAuctionSearch {
             if (numResultsToSkip < 0)
                 numResultsToSkip = 0;
 
-            SearchResult[] basicSearchResult = basicSearch(query, 0, 2147483647);
+            SearchResult[] basicSearchResult = basicSearch(query, 0, 10000000);
 
             /* load the driver*/
             Class.forName("com.mysql.jdbc.Driver"); 
@@ -304,7 +304,7 @@ public class AuctionSearch implements IAuctionSearch {
     }
     
     static String xmlEscape(String str){
-        return ((str.replace("<","&lt;")).replace(">","&gt;")).replace("&","&amp;");
+        return str.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\\", "\\\\").replace("\"", "\\\"").replace("'","&apos;");
     }
 	
 	public String echo(String message) {
