@@ -17,12 +17,20 @@ public class AuctionSearchTest {
 		System.out.println("Reply: " + reply);
 		
 		String query = "superman";
-		SearchResult[] basicResults = as.basicSearch(query, 0, 20);
+		SearchResult[] basicResults = as.basicSearch(query, 0, 100);
 		System.out.println("Basic Seacrh Query: " + query);
 		System.out.println("Received " + basicResults.length + " results");
 		for(SearchResult result : basicResults) {
 			System.out.println(result.getItemId() + ": " + result.getName());
 		}
+
+		// String query2 = "star trek";
+		// SearchResult[] basicResults2 = as.basicSearch(query2, 0, 1000);
+		// System.out.println("Basic Seacrh Query: " + query2);
+		// System.out.println("Received " + basicResults2.length + " results");
+		// for(SearchResult result : basicResults2) {
+		// 	System.out.println(result.getItemId() + ": " + result.getName());
+		// }
 		
 		SearchRegion region =
 		    new SearchRegion(33.774, -118.63, 34.201, -117.38); 
@@ -39,5 +47,7 @@ public class AuctionSearchTest {
 		System.out.println(item);
 
 		// Add your own test here
+
+
 	}
 }

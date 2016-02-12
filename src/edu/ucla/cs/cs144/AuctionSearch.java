@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.* ;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.analysis.Analyzer;
@@ -59,6 +60,11 @@ public class AuctionSearch implements IAuctionSearch {
 			int numResultsToReturn){
 		// TODO: Your code here!
         try{
+            if (numResultsToReturn <= 0)
+                return new SearchResult[0];
+            if (numResultsToSkip < 0)
+                numResultsToSkip = 0;
+
         	searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(INDEX_DIR))));
         	parser = new QueryParser("Content",new StandardAnalyzer());
         	Query myQuery = parser.parse(query);
@@ -86,7 +92,68 @@ public class AuctionSearch implements IAuctionSearch {
 	public SearchResult[] spatialSearch(String query, SearchRegion region,
 			int numResultsToSkip, int numResultsToReturn) {
 		// TODO: Your code here!
-		return new SearchResult[0];
+        try{
+            if (numResultsToReturn <= 0)
+                return new SearchResult[0];
+            if (numResultsToSkip < 0)
+                numResultsToSkip = 0;
+
+            SearchResult[] basicSearchResult = basicSearch(query, 0, 2147483647);
+
+            /* load the driver*/
+            Class.forName("com.mysql.jdbc.Driver"); 
+
+            Connection c = null ;
+            /* create an instance of a Connection object */
+            c = DriverManager.getConnection("jdbc:mysql://localhost:3306/CS144", "cs144", ""); 
+
+            Statement s = c.createStatement();
+
+            ResultSet rs = s.executeQuery("SET @poly = GeomFromText('Polygon((" + region.getLx() + ' ' + region.getLy() + ','
+                                                    + region.getRx() + ' ' + region.getLy() + ','
+                                                    + region.getRx() + ' ' + region.getRy() + ','
+                                                    + region.getLx() + ' ' + region.getRy() + ','
+                                                    + region.getLx() + ' ' + region.getLy() + "))')");
+
+            SearchResult[] ALLSearchResult = new SearchResult[basicSearchResult.length];
+
+            int numOfAllResult = 0;
+            for(int i=0; i<basicSearchResult.length; i++) {
+                rs = s.executeQuery("SELECT ItemID FROM ItemGeo WHERE MBRContains(@poly, GeoPosition) AND ItemID = " + 
+                                     basicSearchResult[i].getItemId());
+    
+                if (rs.next() && (numOfAllResult < numResultsToReturn+numResultsToSkip)) {
+                    ALLSearchResult[numOfAllResult] = new SearchResult(basicSearchResult[i].getItemId(), basicSearchResult[i].getName());
+                    numOfAllResult++;
+                }
+            }
+            /* close the resultset, statement and connection */
+            rs.close();
+            s.close();
+            c.close();
+
+            SearchResult[] Result = new SearchResult[numOfAllResult - numResultsToSkip];
+            int count = 0;
+            for(int i=numResultsToSkip; i < numOfAllResult; i++, count++) {
+                Result[count] = ALLSearchResult[i];
+            }
+            return Result;
+
+        }catch (ClassNotFoundException ex){
+            System.out.println(ex);
+            return new SearchResult[0];
+        }catch (SQLException ex){
+            System.out.println("SQLException caught");
+            System.out.println("---");
+            while ( ex != null ){
+                System.out.println("Message   : " + ex.getMessage());
+                System.out.println("SQLState  : " + ex.getSQLState());
+                System.out.println("ErrorCode : " + ex.getErrorCode());
+                System.out.println("---");
+                ex = ex.getNextException();
+            }
+            return new SearchResult[0];
+        }
 	}
 
 	public String getXMLDataForItemId(String itemId) {
