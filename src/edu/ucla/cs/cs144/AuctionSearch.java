@@ -38,9 +38,9 @@ import edu.ucla.cs.cs144.SearchRegion;
 import edu.ucla.cs.cs144.SearchResult;
 
 //import java.text.ParseException;
-//import java.text.DateFormat;
-//import java.text.SimpleDateFormat;
-//import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class AuctionSearch implements IAuctionSearch {
 
